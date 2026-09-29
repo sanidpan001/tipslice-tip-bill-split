@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TipSlice — Tip Calculator &amp; Fair Bill Splitter</title>
+<meta name="description" content="TipSlice is a free tip calculator and fair bill splitter. Compute pre/post-tax tips, split bills evenly, by weight, or item-by-item, handle leftover cents with smart rounding modes, and use country tipping presets for the US, Europe, UK, Japan and India.">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: { cream: '#FDF8F0', bistrogreen: '#15803D', bistroamber: '#B45309' },
+      fontFamily: { receipt: ['Georgia', 'Times New Roman', 'serif'] }
+    }
+  }
+};
+</script>
+<style>
+  body { background-color: #FDF8F0; }
+  .receipt-paper {
+    background: #fffdf9;
+    box-shadow: 0 10px 30px rgba(120, 72, 20, 0.12), 0 2px 6px rgba(120, 72, 20, 0.08);
+  }
+  .receipt-zigzag {
+    height: 12px;
+    background:
+      linear-gradient(-45deg, transparent 8px, #fffdf9 0) 0 0 / 16px 16px repeat-x,
+      linear-gradient(45deg, transparent 8px, #fffdf9 0) 8px 0 / 16px 16px repeat-x;
+    transform: rotate(180deg);
+  }
+  .dash-sep { border-top: 2px dashed #d8c9b0; }
+  input[type=range].tip-range { -webkit-appearance: none; appearance: none; height: 8px; border-radius: 9999px; background: linear-gradient(to right, #B45309 var(--fill,50%), #eadfc8 var(--fill,50%)); outline: none; }
+  input[type=range].tip-range::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 26px; height: 26px; border-radius: 9999px; background: #B45309; border: 3px solid #fffdf9; box-shadow: 0 1px 4px rgba(0,0,0,.3); cursor: pointer; }
+  input[type=range].tip-range::-moz-range-thumb { width: 22px; height: 22px; border-radius: 9999px; background: #B45309; border: 3px solid #fffdf9; box-shadow: 0 1px 4px rgba(0,0,0,.3); cursor: pointer; }
+  .chip-active { background: #B45309 !important; color: #fffdf9 !important; border-color: #B45309 !important; }
+  .tab-active { background: #B45309; color: #fffdf9; }
+  .round-active { border-color: #B45309 !important; background: #fdf3e3 !important; box-shadow: 0 0 0 1px #B45309; }
+  @media print { .no-print { display: none !important; } }
+</style>
+</head>
+<body class="bg-[#FDF8F0] text-stone-800 antialiased" id="top">
+
+<!-- Sticky header -->
+<header class="no-print sticky top-0 z-40 bg-[#FDF8F0]/95 backdrop-blur border-b border-[#e7dcc4]">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6 h-14 flex items-center justify-between">
+    <a href="#top" class="flex items-center gap-2 font-receipt font-bold text-xl text-[#B45309]">
+      <span aria-hidden="true" class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-[#B45309] text-white text-lg">&#9986;</span>
+      TipSlice
+    </a>
+    <nav class="flex items-center gap-5 text-sm font-medium">
+      <a href="#top" class="text-stone-600 hover:text-[#B45309]">Home</a>
+      <a href="https://fixoraa.tech" class="text-stone-600 hover:text-[#B45309]">More Tools</a>
+    </nav>
+  </div>
+</header>
+
+<!-- TOP AD -->
+<div class="no-print mx-auto max-w-6xl px-4 sm:px-6 pt-4" role="complementary" aria-label="Advertisement">
+  <div class="mx-auto text-center" style="max-width:728px">
+    <span class="block text-[10px] tracking-[0.18em] uppercase text-slate-400 mb-1.5">Advertisement</span>
+    <div class="flex justify-center overflow-hidden">
+      <div class="origin-top scale-[0.44] sm:scale-100 shrink-0">
+        <script>
+          atOptions = { 'key' : '4e68ac77881c17fe128a46565d9a4e8c', 'format' : 'iframe', 'height' : 90, 'width' : 728, 'params' : {} };
+        </script>
+        <script src="https://www.highrevenueformat.com/4e68ac77881c17fe128a46565d9a4e8c/invoke.js"></script>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main class="mx-auto max-w-6xl px-4 sm:px-6">
+  <!-- Hero -->
+  <div class="text-center pt-6 pb-2">
+    <h1 class="font-receipt text-3xl sm:text-4xl font-bold text-stone-900">Tip Calculator &amp; Fair Bill Splitter</h1>
+    <p class="mt-2 text-stone-600 max-w-xl mx-auto text-sm sm:text-base">Work out the perfect tip, then split the bill evenly, by weight, or item-by-item — down to the last cent.</p>
+    <div class="mt-3 inline-flex items-center gap-2 rounded-full bg-[#15803D]/10 border border-[#15803D]/30 px-4 py-1.5 text-xs sm:text-sm font-semibold text-[#15803D]">
+      <span aria-hidden="true">&#10003;</span> Unlimited Free Usage
+    </div>
+    <p class="mt-2 text-[11px] text-stone-400">No signup &middot; No paywall &middot; No watermark</p>
+  </div>
+
+  <!-- ============ THE RECEIPT / TOOL ============ -->
+  <section aria-label="Tip calculator and bill splitter" class="mt-4 mb-10">
+    <div class="max-w-xl mx-auto">
+      <div class="receipt-paper rounded-t-xl border border-[#e7dcc4] border-b-0 px-5 sm:px-8 pt-6 pb-2">
+
+        <div class="text-center">
+          <p class="font-receipt font-bold text-lg tracking-wide text-stone-900">TIPSLICE BISTRO</p>
+          <p class="text-[11px] tracking-[0.25em] uppercase text-stone-400">* fair bill receipt *</p>
+        </div>
+        <div class="dash-sep my-4"></div>
+
+        <!-- Bill -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label for="in_bill" class="block text-xs font-semibold uppercase tracking-wider text-stone-500 mb-1">Bill amount</label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 font-semibold">$</span>
+              <input id="in_bill" inputmode="decimal" type="text" placeholder="0.00" autocomplete="off"
+                class="w-full rounded-lg border border-[#e0d3b8] bg-white pl-7 pr-3 py-2.5 font-mono text-lg font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#B45309]/60">
+            </div>
+          </div>
+          <div>
+            <label for="in_tax" class="block text-xs font-semibold uppercase tracking-wider text-stone-500 mb-1">Tax % <span class="normal-case font-normal">(optional)</span></label>
+            <div class="relative">
+              <input id="in_tax" inputmode="decimal" type="text" placeholder="0" autocomplete="off"
+                class="w-full rounded-lg border border-[#e0d3b8] bg-white px-3 py-2.5 font-mono text-lg font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#B45309]/60">
+              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 font-semibold">%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tip basis -->
+        <div class="mt-4">
+          <p class="text-xs font-semibold uppercase tracking-wider text-stone-500 mb-1.5">Tip calculated on</p>
+          <div class="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#f4ecdc]" role="group" aria-label="Tip basis">
+            <button type="button" id="basis_pre" class="rounded-lg py-2 text-sm font-semibold transition">Pre-tax</button>
+            <button type="button" id="basis_post" class="rounded-lg py-2 text-sm font-semibold transition">Post-tax</button>
+          </div>
+        </div>
+
+        <!-- Tip % -->
+        <div class="mt-4">
+          <div class="flex items-center justify-between mb-1.5">
+            <label for="tip_range" class="text-xs font-semibold uppercase tracking-wider text-stone-500">Tip</label>
+            <span id="tip_readout" class="font-mono font-bold text-lg text-[#B45309]">20%</span>
+          </div>
+          <input id="tip_range" type="range" min="0" max="40" step="0.5" value="20" class="tip-range w-full" aria-label="Tip percentage">
+          <div class="flex justify-between text-[11px] text-stone-400 mt-1"><span>0%</span><span>20%</span><span>40%</span></div>
+          <div id="tip_flat_wrap" class="hidden mt-2">
+            <label for="in_tipflat" class="block text-xs font-semibold uppercase tracking-wider text-stone-500 mb-1">Flat tip amount</label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 font-semibold">$</span>
+              <input id="in_tipflat" inputmode="decimal" type="text" placeholder="2.00" autocomplete="off"
+                class="w-full rounded-lg border border-[#e0d3b8] bg-white pl-7 pr-3 py-2.5 font-mono text-lg font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#B45309]/60">
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick presets -->
+        <div class="mt-3">
+          <p class="text-xs font-semibold uppercase tracking-wider text-stone-500 mb-1.5">Quick presets</p>
+          <div id="preset_chips" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <!-- Country presets -->
+        <div class="mt-3">
+          <p class="text-xs font-semibold uppercase tracking-wider text-stone-500 mb-1.5">Tipping culture presets</p>
+          <div id="country_chips" class="flex flex-wrap gap-2"></div>
+          <p id="country_note" class="hidden mt-2 text-xs italic text-stone-500 bg-[#f4ecdc] rounded-lg px-3 py-2"></p>
+        </div>
+
+        <div class="dash-sep my-5"></div>
+
+        <!-- Split mode tabs -->
+        <p class="text-xs font-semibold uppercase tracking-wider text-stone-500 mb-1.5">Split the bill</p>
+        <div class="grid grid-cols-3 gap-2 p-1 rounded-xl bg-[#f4ecdc]" role="tablist" aria-label="Split mode">
+          <button type="button" id="tab_even" role="tab" class="tab-active rounded-lg py-2 text-sm font-semibold transition">&#8646; Even</button>
+          <button type="button" id="tab_weighted" role="tab" class="tab-active-none rounded-lg py-2 text-sm font-semibold transition text-stone-600">&#9878; Weighted</button>
+          <button type="button" id="tab_itemized" role="tab" class="rounded-lg py-2 text-sm font-semibold transition text-stone-600">&#8801; Itemized</button>
+        </div>
+
+        <!-- EVEN panel -->
+        <div id="panel_even" class="mt-4" role="tabpanel">
+          <div class="flex items-center justify-between gap-3">
+            <label for="people_count" class="text-sm font-semibold text-stone-700">People</label>
+            <div class="flex items-center gap-2">
+              <button type="button" id="pc_minus" aria-label="Fewer people" class="w-9 h-9 rounded-lg border border-[#e0d3b8] bg-white text-lg font-bold text-[#B45309] hover:bg-[#fdf3e3]">&#8722;</button>
+              <input id="people_count" inputmode="numeric" type="text" value="2" aria-label="Number of people"
+                class="w-14 text-center rounded-lg border border-[#e0d3b8] bg-white py-1.5 font-mono font-bold text-lg focus:outline-none focus:ring-2 focus:ring-[#B45309]/60">
+              <button type="button" id="pc_plus" aria-label="More people" class="w-9 h-9 rounded-lg border border-[#e0d3b8] bg-white text-lg font-bold text-[#B45309] hover:bg-[#fdf3e3]">+</button>
+            </div>
+          </div>
+          <div id="people_names" class="grid grid-cols-2 gap-2 mt-3"></div>
+
+          <p class="text-xs font-semibold uppercase tracking-wider text-stone-500 mt-4 mb-1.5">Rounding mode <span class="normal-case font-normal text-stone-400">&mdash; who pays the leftover?</span></p>
+          <div class="grid grid-cols-2 gap-2" id="rounding_cards" role="radiogroup" aria-label="Rounding mode">
+            <button type="button" data-round="up" role="radio" class="round-card rounded-xl border-2 border-[#e0d3b8] bg-white px-3 py-2.5 text-left transition">
+              <span class="block text-sm font-bold text-stone-800">&#8593; Round up</span>
+              <span class="block text-[11px] text-stone-500 mt-0.5">Everyone pays up to the next whole dollar. Extra goes to the tip jar.</span>
+            </button>
+            <button type="button" data-round="down" role="radio" class="round-card rounded-xl border-2 border-[#e0d3b8] bg-white px-3 py-2.5 text-left transition">
+              <span class="block text-sm font-bold text-stone-800">&#8595; Round down</span>
+              <span class="block text-[11px] text-stone-500 mt-0.5">Everyone pays down. The banker covers the shortfall.</span>
+            </button>
+            <button type="button" data-round="nearest" role="radio" class="round-card rounded-xl border-2 border-[#e0d3b8] bg-white px-3 py-2.5 text-left transition">
+              <span class="block text-sm font-bold text-stone-800">&#8776; Nearest</span>
+              <span class="block text-[11px] text-stone-500 mt-0.5">Each share rounds to the nearest dollar. The banker settles any difference.</span>
+            </button>
+            <button type="button" data-round="banker" role="radio" class="round-card rounded-xl border-2 border-[#e0d3b8] bg-white px-3 py-2.5 text-left transition">
+              <span class="block text-sm font-bold text-stone-800">&#127974; Banker absorbs</span>
+              <span class="block text-[11px] text-stone-500 mt-0.5">Everyone pays whole dollars down. One person absorbs all the leftover cents.</span>
+            </button>
+          </div>
+          <div id="banker_wrap" class="hidden mt-3">
+            <label for="banker_select" class="block text-xs font-semibold uppercase tracking-wider text-stone-500 mb-1">Banker &mdash; settles the difference</label>
+            <select id="banker_select" class="w-full rounded-lg border border-[#e0d3b8] bg-white px-3 py-2.5 text-sm font-semibold text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#B45309]/60"></select>
+          </div>
+        </div>
+
+        <!-- WEIGHTED panel -->
+        <div id="panel_weighted" class="mt-4 hidden" role="tabpanel">
+          <div class="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[#f4ecdc] mb-3" role="group" aria-label="Weight type">
+            <button type="button" id="wkind_pct" class="rounded-lg py-2 text-sm font-semibold transition">By % share</button>
+            <button type="button" id="wkind_amt" class="rounded-lg py-2 text-sm font-semibold transition text-stone-600">By $ amount</button>
+          </div>
+          <div id="weights_rows" class="space-y-2"></div>
+          <p id="weights_hint" class="mt-2 text-xs text-stone-500"></p>
+          <p class="mt-2 text-[11px] text-stone-400">Tip: use this when someone only had a salad while another had the steak.</p>
+        </div>
+
+        <!-- ITEMIZED panel -->
+        <div id="panel_itemized" class="mt-4 hidden" role="tabpanel">
+          <div id="items_rows" class="space-y-3"></div>
+          <button type="button" id="btn_add_item" class="mt-2 w-full rounded-xl border-2 border-dashed border-[#B45309]/50 bg-[#B45309]/5 py-2.5 text-sm font-bold text-[#B45309] hover:bg-[#B45309]/10">+ Add item</button>
+          <p class="mt-2 text-[11px] text-stone-400">Each person pays their own items, plus a proportional share of tax and tip. Items with nobody assigned are split evenly.</p>
+        </div>
+
+        <div class="dash-sep my-5"></div>
+
+        <!-- Results -->
+        <div id="empty_state" class="text-center py-8">
+          <p class="text-4xl" aria-hidden="true">&#9986;</p>
+          <p class="mt-2 font-receipt text-lg font-bold text-stone-700">Enter your bill amount</p>
+          <p class="text-sm text-stone-500">and TipSlice will slice the tip and split the total.</p>
+        </div>
+
+        <div id="results" class="hidden">
+          <p class="text-center text-xs font-semibold uppercase tracking-[0.25em] text-stone-400">* total *</p>
+          <div id="res_summary" class="font-mono text-sm mt-2 space-y-1.5"></div>
+          <div class="dash-sep my-4"></div>
+          <div id="round_note" class="hidden mb-3 text-xs bg-[#fdf3e3] border border-[#B45309]/30 rounded-lg px-3 py-2 text-stone-700"></div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-stone-500 mb-2">Each person pays</p>
+          <div id="res_people" class="space-y-2.5"></div>
+          <button type="button" id="btn_reset" class="no-print mt-5 w-full rounded-xl border border-[#e0d3b8] bg-white py-2.5 text-sm font-bold text-stone-500 hover:text-[#B45309] hover:border-[#B45309]/50">Reset receipt</button>
+        </div>
+
+      </div>
+      <div class="receipt-zigzag" aria-hidden="true"></div>
+    </div>
+  </section>
+</main>
+
+<!-- BOTTOM AD -->
+<div class="no-print mx-auto max-w-6xl px-4 sm:px-6 pb-4" role="complementary" aria-label="Advertisement">
+  <div class="mx-auto text-center" style="max-width:728px">
+    <span class="block text-[10px] tracking-[0.18em] uppercase text-slate-400 mb-1.5">Advertisement</span>
+    <div class="flex justify-center overflow-hidden">
+      <script async src="https://js.wpadmngr.com/static/adManager.js" data-admpid="464498"></script>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SEO ARTICLE ============ -->
+<article id="seo-article" class="mx-auto max-w-3xl px-4 sm:px-6 pb-10 text-stone-700 leading-relaxed">
+  <h2 class="font-receipt text-2xl sm:text-3xl font-bold text-stone-900 mt-6 mb-4">The Complete Guide to Tipping and Splitting Bills Fairly</h2>
+
+  <p class="mb-4">Few moments at the dinner table are as quietly stressful as the arrival of the check. Someone squints at the total, someone else does mental math, a third person announces a number with total confidence that is somehow still wrong, and everyone reaches for their wallets hoping the numbers work out. A good tip calculator removes that friction, but the interesting part is not the arithmetic — it is the culture, the psychology, and the surprisingly tricky mathematics hiding inside a simple restaurant bill.</p>
+
+  <h3 class="font-receipt text-xl font-bold text-stone-900 mt-8 mb-3">A short history of tipping</h3>
+  <p class="mb-4">Tipping as we know it began in the taverns and coffee houses of 17th-century England, where small boxes labeled "To Insure Promptitude" invited patrons to drop in coins for faster service. The practice crossed the Atlantic in the 1800s with wealthy Americans returning from European tours, and it stuck — in fact, it stuck harder in America than anywhere else. Early critics called tipping un-American and several states even tried to outlaw it, arguing that it created a servile class. Those efforts failed, and by the mid-20th century the tip had quietly become a pillar of how service workers in the United States are paid, with a lower tipped minimum wage making gratuities not a bonus but the bulk of a server's income.</p>
+  <p class="mb-4">Understanding that history matters because it explains why American tipping percentages look so high to visitors. In the US, a tip is not really a reward for good service in the way it is elsewhere — it is a delayed portion of the price of the meal, paid directly to the person who served you. That is why 18 to 22 percent is the modern norm for sit-down restaurants, and why undertipping in America is felt as a pay cut rather than a mild slight.</p>
+
+  <h3 class="font-receipt text-xl font-bold text-stone-900 mt-8 mb-3">Tipping in the United States</h3>
+  <p class="mb-4">The current American consensus is fairly clear: 15 percent is the floor for acceptable sit-down service, 18 percent is standard, and 20 percent or more signals genuine appreciation. For truly exceptional service, regulars often go to 25 percent. Bars are simpler — a dollar or two per drink, or 18 to 20 percent on a tab. Delivery drivers, who use their own cars and fuel, generally expect 15 to 20 percent with a minimum of a few dollars, more in bad weather. The percentages have crept upward over the decades: what was 10 percent in the 1950s became 15 percent by the 1980s and 20 percent by the 2010s, a slow inflation driven partly by card-payment prompts that now suggest 20, 25, and even 30 percent as defaults.</p>
+
+  <h3 class="font-receipt text-xl font-bold text-stone-900 mt-8 mb-3">Tipping around the world</h3>
+  <p class="mb-4">Step outside the US and the rules change completely, which is exactly why travelers get tripped up. Across much of continental Europe, a service charge is already folded into the menu price by law or custom — in France it is literally printed on the receipt as "service compris." Leaving the coins from your change, or an extra 5 to 10 percent for genuinely great service, is appreciated but never expected. The United Kingdom sits in the middle: many restaurants add a discretionary 10 to 12.5 percent service charge to the bill, which you may ask to remove, and tipping on top of that is unnecessary. Check the bill first — double-tipping on an included charge is the classic tourist mistake.</p>
+  <p class="mb-4">Japan is the famous exception in the other direction. Tipping there can be seen as awkward or even insulting, because excellent service is considered a point of professional pride rather than something purchased with a bonus. A tip of zero percent is not stinginess in Japan — it is correct etiquette. India lands closer to the American side: 10 percent is the common restaurant norm, rising to 10–15 percent in upscale or tourist-heavy areas, while small street-side eateries expect nothing beyond rounding up. The Middle East often adds a service charge automatically, Latin America varies city by city, and in Australia and New Zealand tipping remains a genuine optional extra of around 10 percent for standout service. The golden rule for travelers is simple: when in doubt, observe the locals, and never assume your home country's percentage travels with you.</p>
+
+  <h3 class="font-receipt text-xl font-bold text-stone-900 mt-8 mb-3">Pre-tax or post-tax? The great debate</h3>
+  <p class="mb-4">One of the most argued-over details in tipping is whether the percentage should apply to the bill before or after sales tax is added. Purists — and most etiquette guides — say pre-tax, on the logic that you are tipping for the food and service, not for the government's cut. On a $100 meal with 8 percent tax, the difference between 20 percent pre-tax ($20.00) and 20 percent post-tax ($21.60) is $1.60: small per meal, but it adds up over a year of dining out. In practice, many people just tip on the total shown at the bottom of the receipt because it is easier, and servers are hardly going to complain. The honest answer is that either is socially acceptable; what matters is being consistent and deliberate about it rather than accidentally tipping on tax one week and pre-tax the next. A calculator that lets you toggle between the two, and shows the tip basis clearly, turns a vague habit into an informed choice.</p>
+
+  <h3 class="font-receipt text-xl font-bold text-stone-900 mt-8 mb-3">Mental math tricks for tips</h3>
+  <p class="mb-4">Before reaching for a tool, it helps to know the classic shortcuts. Ten percent of any bill is just the decimal point moved one place left: 10 percent of $46.50 is $4.65. Double it for 20 percent ($9.30). For 15 percent, take 10 percent and add half again ($4.65 + $2.33 = $6.98). For 18 percent, take 20 percent and subtract a little. These tricks are great for a quick sanity check, but they fall apart the moment the bill must be divided among six people with tax, a bottle of wine only two people drank, and a coupon someone used. That is precisely the point where a purpose-built calculator earns its place: not for the 20 percent of $50, but for the messy real-world check.</p>
+
+  <h3 class="font-receipt text-xl font-bold text-stone-900 mt-8 mb-3">The leftover-cent problem</h3>
+  <p class="mb-4">Here is a piece of mathematics that quietly breaks almost every casual bill split. Take a $115.00 total and divide it among three people: $38.333… each. Money only exists in whole cents, so the shares must be rounded — and three times $38.33 is $114.99, leaving a penny unaccounted for. Somebody has to pay that cent, and most calculators either silently drop it or quietly overcharge everyone by rounding all shares up. The mathematically clean fix is called the largest-remainder method: give everyone the rounded-down share, then hand out the leftover cents one by one. For $115.00 split three ways, that means $38.34, $38.33, $38.33 — shares that are whole cents and sum to exactly $115.00.</p>
+  <p class="mb-4">Things get more interesting when groups round to whole dollars for convenience. If everyone rounds up to the nearest dollar, the group collects more than the bill — that surplus can go to the tip jar, but everyone should know it is happening. If everyone rounds down, the collected amount falls short and someone has to cover the gap. Naming that person the "banker" and showing exactly what they absorb turns an awkward fudge into a transparent, agreed-upon rule. The principle is always the same: every cent must be assigned to somebody, visibly.</p>
+
+  <h3 class="font-receipt text-xl font-bold text-stone-900 mt-8 mb-3">Three fair ways to split a bill</h3>
+  <p class="mb-4">Not all splits are created equal, and the fairest method depends on the table. An even split is fastest and works beautifully when everyone ordered roughly the same amount — appetizers to share, similar mains, a round of drinks each. It starts to feel unfair the moment orders diverge, which is where a weighted split helps: each person is assigned a percentage or a dollar weight reflecting what they consumed, and the total divides proportionally. The salad-versus-steak table is the textbook case for weighting.</p>
+  <p class="mb-4">The gold standard for mixed tables is the itemized split. Every line item is assigned to the person (or people) who ordered it, and then tax and tip are divided in proportion to each person's subtotal. This is the only method that is provably fair when one diner had a $60 steak and another had a $14 salad, because tax and tip follow the spending that generated them. The trade-off is effort: someone has to enter the items. For groups that split bills often, that minute of data entry is the difference between quiet resentment and everyone feeling the math was honest.</p>
+
+  <h3 class="font-receipt text-xl font-bold text-stone-900 mt-8 mb-3">Rounding etiquette: who pays the extra cent?</h3>
+  <p class="mb-4">Socially, the extra cent or two is trivial money but surprisingly potent symbolism. The smoothest convention is rotation or volunteering: the person who suggested the restaurant, the highest earner at the table, or simply whoever feels like it takes the odd cent without comment. What creates friction is not the penny itself but the feeling that the math was done carelessly — discovering the shares sum to $114.99 against a $115.00 bill makes people wonder what else was fudged. Stating the rule out loud ("Ana takes the extra cent") costs nothing and ends the discussion. In business settings, the host traditionally absorbs all rounding; among friends, alternating who covers it across dinners keeps things even over time.</p>
+
+  <h3 class="font-receipt text-xl font-bold text-stone-900 mt-8 mb-3">Coffee, delivery, and small bills</h3>
+  <p class="mb-4">Percentage math breaks down on small bills, which is why flat tips exist. Twenty percent of a $3 coffee is sixty cents — an amount that feels insulting as a tip even though the percentage is "correct." Coffee culture solved this with the flat one-to-two-dollar tip, often dropped in a jar or tapped on a card reader. Delivery has its own logic: drivers bear fuel and vehicle costs, so a percentage with a minimum (say 15 percent or $3, whichever is more) is fairer than a pure percentage on a small order, and generous tipping in bad weather is both kind and practical — it is also how you stay a favored customer on the app. Business dinners invert the small-bill problem: on a $400 client dinner, a clean 20 percent ($80) is standard, and regulars at business venues often standardize on 20 percent precisely so nobody has to think about it mid-conversation.</p>
+
+  <h3 class="font-receipt text-xl font-bold text-stone-900 mt-8 mb-3">Service charges and auto-gratuity</h3>
+  <p class="mb-4">A service charge is not a tip. It is a fee set by the restaurant, and — crucially — the house is not always required to pass all of it to the staff, depending on local law. Auto-gratuity, commonly 18 to 20 percent added to parties of six or eight or more, is effectively a mandatory tip and usually does go to the server. The practical rule: read the bill before adding anything. If a service charge is already there, you do not owe a full additional tip, though topping up a few percent for exceptional service is a gracious move. If only an auto-gratuity appears, that is your tip — adding another 20 percent on top means you tipped 40 percent. And in countries where service is included by law, any extra you leave is a true bonus, which is why a small amount carries disproportionate goodwill.</p>
+
+  <h3 class="font-receipt text-xl font-bold text-stone-900 mt-8 mb-3">The psychology of a fair split</h3>
+  <p class="mb-4">Behavioral researchers have found that people care about the fairness of the process even more than the fairness of the outcome. A diner who pays $2 more than their "true" share under a clearly explained rule feels fine; the same diner who suspects the math was sloppy feels cheated over pennies. Transparency is the whole game: show the subtotal, show the tax, show the tip and what it was calculated on, show each person's share and how rounding was handled. When everyone can see the same receipt, disputes evaporate. This is also why per-person cards that state "You owe $23.47" work so well socially — they replace a mumbled negotiation with a clear, copyable number nobody has to argue with.</p>
+
+  <h3 class="font-receipt text-xl font-bold text-stone-900 mt-8 mb-3">Putting it all together</h3>
+  <p class="mb-4">A fair bill has a simple anatomy: the subtotal everyone agreed to, the tax the receipt shows, a tip percentage chosen deliberately — with the local culture in mind and the pre-tax question answered — and a split method matched to the table, with every leftover cent visibly assigned. Get those four pieces right and the check stops being the awkward end of the evening. TipSlice exists to make that anatomy automatic: enter the bill, pick your tip with a preset or a country's custom, choose how to split, and let the receipt show its work. The math is exact, the rounding is honest, and everyone at the table can see precisely what they owe. That is what a good tip calculator is really for — not just the numbers, but the confidence that the numbers are fair.</p>
+</article>
+
+<!-- ============ FAQS ============ -->
+<section class="mx-auto max-w-3xl px-4 sm:px-6 pb-12" aria-label="Frequently asked questions">
+  <h2 class="font-receipt text-2xl font-bold text-stone-900 mb-4">Frequently asked questions</h2>
+  <div class="space-y-3">
+    <details class="faq-item receipt-paper rounded-xl border border-[#e7dcc4] px-5 py-4">
+      <summary class="font-semibold text-stone-800 cursor-pointer">Should I tip on the pre-tax or post-tax amount?</summary>
+      <p class="mt-2 text-sm text-stone-600">Etiquette guides generally recommend tipping on the pre-tax subtotal, since the tip rewards the food and service rather than the government's share. On a $100 bill with 8% tax, 20% pre-tax is $20.00 versus $21.60 post-tax. Either is socially acceptable — what matters is choosing deliberately. TipSlice lets you toggle between pre-tax and post-tax and shows the tip basis on the receipt.</p>
+    </details>
+    <details class="faq-item receipt-paper rounded-xl border border-[#e7dcc4] px-5 py-4">
+      <summary class="font-semibold text-stone-800 cursor-pointer">Why does my bill split leave a penny unaccounted for?</summary>
+      <p class="mt-2 text-sm text-stone-600">Because money only exists in whole cents. Splitting $115.00 three ways gives $38.333... each, and three rounded shares of $38.33 sum to $114.99 — one cent short. This is the leftover-cent problem. The fix is the largest-remainder method: everyone pays the rounded-down share and leftover cents are assigned one by one ($38.34, $38.33, $38.33), so the shares always sum exactly to the total. TipSlice does this automatically and shows who pays the extra cent.</p>
+    </details>
+    <details class="faq-item receipt-paper rounded-xl border border-[#e7dcc4] px-5 py-4">
+      <summary class="font-semibold text-stone-800 cursor-pointer">What is the fairest way to split a bill when everyone ordered different things?</summary>
+      <p class="mt-2 text-sm text-stone-600">Use an itemized split: assign each line item to the person who ordered it, then divide tax and tip in proportion to each person's subtotal. This is the only method that stays fair when one person had a $60 steak and another had a $14 salad, because the tax and tip follow the spending that generated them. A weighted split (by percentage) is a good middle ground when you don't want to enter every item.</p>
+    </details>
+    <details class="faq-item receipt-paper rounded-xl border border-[#e7dcc4] px-5 py-4">
+      <summary class="font-semibold text-stone-800 cursor-pointer">How much should I tip in different countries?</summary>
+      <p class="mt-2 text-sm text-stone-600">In the US, 18–22% is standard for restaurants since tips form most of a server's pay. In much of Europe, service is included in the price and 5–10% extra is plenty. The UK often adds a discretionary 10–12.5% service charge — check before tipping on top. In Japan, tipping can be seen as rude, so 0% is correct. In India, 10% is the common restaurant norm. TipSlice's country presets set the right percentage and explain the local custom in one tap.</p>
+    </details>
+    <details class="faq-item receipt-paper rounded-xl border border-[#e7dcc4] px-5 py-4">
+      <summary class="font-semibold text-stone-800 cursor-pointer">Should I tip for coffee or food delivery?</summary>
+      <p class="mt-2 text-sm text-stone-600">Percentages break down on small bills — 20% of a $3 coffee is only 60 cents. Coffee culture uses a flat $1–2 tip instead. For delivery, drivers cover their own fuel and vehicle costs, so tip 15–20% with a minimum of a few dollars (more in bad weather). TipSlice's quick presets include flat coffee tips, a 20% business-dinner preset, and both percentage and flat delivery options.</p>
+    </details>
+    <details class="faq-item receipt-paper rounded-xl border border-[#e7dcc4] px-5 py-4">
+      <summary class="font-semibold text-stone-800 cursor-pointer">What should I do when the restaurant already adds a service charge?</summary>
+      <p class="mt-2 text-sm text-stone-600">Read the bill first. A service charge is a restaurant fee — not necessarily a tip — while auto-gratuity (often 18–20% on large parties) usually does go to the server. If either is present, you don't owe a full additional tip; adding another 20% on top of an 18% auto-gratuity means tipping nearly 40%. A small top-up for exceptional service is always a gracious move, but double-tipping by accident is the classic mistake to avoid.</p>
+    </details>
+  </div>
+</section>
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Should I tip on the pre-tax or post-tax amount?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Etiquette guides generally recommend tipping on the pre-tax subtotal, since the tip rewards the food and service rather than the government's share. On a $100 bill with 8% tax, 20% pre-tax is $20.00 versus $21.60 post-tax. TipSlice lets you toggle between pre-tax and post-tax and shows the tip basis on the receipt." }
+    },
+    {
+      "@type": "Question",
+      "name": "Why does my bill split leave a penny unaccounted for?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Because money only exists in whole cents. Splitting $115.00 three ways gives $38.333... each, and three rounded shares of $38.33 sum to $114.99 — one cent short. The fix is the largest-remainder method: everyone pays the rounded-down share and leftover cents are assigned one by one, so the shares always sum exactly to the total." }
+    },
+    {
+      "@type": "Question",
+      "name": "What is the fairest way to split a bill when everyone ordered different things?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Use an itemized split: assign each line item to the person who ordered it, then divide tax and tip in proportion to each person's subtotal. This is the only method that stays fair when one person had a $60 steak and another had a $14 salad." }
+    },
+    {
+      "@type": "Question",
+      "name": "How much should I tip in different countries?",
+      "acceptedAnswer": { "@type": "Answer", "text": "In the US, 18-22% is standard for restaurants. In much of Europe, service is included and 5-10% extra is plenty. The UK often adds a discretionary 10-12.5% service charge. In Japan, tipping can be seen as rude, so 0% is correct. In India, 10% is the common restaurant norm." }
+    },
+    {
+      "@type": "Question",
+      "name": "Should I tip for coffee or food delivery?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Percentages break down on small bills, so coffee culture uses a flat $1-2 tip instead. For delivery, tip 15-20% with a minimum of a few dollars, since drivers cover their own fuel and vehicle costs." }
+    },
+    {
+      "@type": "Question",
+      "name": "What should I do when the restaurant already adds a service charge?",
+      "acceptedAnswer": { "@type": "Answer", "text": "Read the bill first. A service charge is a restaurant fee, while auto-gratuity (often 18-20% on large parties) usually does go to the server. If either is present, you don't owe a full additional tip on top." }
+    }
+  ]
+}
+</script>
+
+<footer class="no-print border-t border-[#e7dcc4] mt-4">
+  <div class="mx-auto max-w-6xl px-4 sm:px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-stone-500">
+    <p><span class="font-receipt font-bold text-[#B45309]">TipSlice</span> &mdash; free tip calculator &amp; fair bill splitter.</p>
+    <a href="https://fixoraa.tech" class="hover:text-[#B45309] font-medium">More Tools</a>
+  </div>
+</footer>
+
+<script>
+/*__PURE_START__*/
+// TipSlice pure logic — all money in integer cents. No DOM, no side effects.
+
+function clampNum(v, min, max, dflt) {
+  var n = Number(v);
+  if (!isFinite(n)) return dflt;
+  if (n < min) return min;
+  if (n > max) return max;
+  return n;
+}
+
+// Parse a dollar string to integer cents. Returns null when invalid (not a number or negative).
+function parseDollarsToCents(v) {
+  if (v === null || v === undefined) return null;
+  var s = String(v).trim().replace(/[$,\s]/g, '');
+  if (s === '') return null;
+  var n = Number(s);
+  if (!isFinite(n) || n < 0) return null;
+  return Math.round(n * 100);
+}
+
+function fmtCents(c) {
+  c = Math.round(Number(c));
+  if (!isFinite(c)) c = 0;
+  var sign = c < 0 ? '-' : '';
+  c = Math.abs(c);
+  var dollars = Math.floor(c / 100).toLocaleString('en-US');
+  var cents = String(c % 100).padStart(2, '0');
+  return sign + '$' + dollars + '.' + cents;
+}
+
+function sumArr(a) { return a.reduce(function (x, y) { return x + y; }, 0); }
+
+// Totals: tip on pre-tax subtotal or post-tax (subtotal + tax).
+// tipMode: 'pct' | 'flat'. Returns integer cents throughout.
+function calcTotals(o) {
+  var billCents = Math.max(0, Math.round(o.billCents || 0));
+  var taxPct = clampNum(o.taxPct, 0, 50, 0);
+  var preTax = o.preTax !== false;
+  var taxCents = Math.round(billCents * taxPct / 100);
+  var tipCents;
+  if (o.tipMode === 'flat') {
+    tipCents = Math.max(0, Math.round(o.tipFlatCents || 0));
+  } else {
+    var tipPct = clampNum(o.tipPct, 0, 100, 0);
+    var base = preTax ? billCents : billCents + taxCents;
+    tipCents = Math.round(base * tipPct / 100);
+  }
+  return {
+    billCents: billCents,
+    taxCents: taxCents,
+    tipCents: tipCents,
+    totalCents: billCents + taxCents + tipCents,
+    tipBasisCents: preTax ? billCents : billCents + taxCents
+  };
+}
+
+// Largest-remainder allocation: integer shares that sum EXACTLY to totalCents.
+function allocateProportional(totalCents, weights) {
+  totalCents = Math.max(0, Math.round(totalCents));
+  var n = weights.length;
+  var shares = new Array(n).fill(0);
+  if (n === 0) return shares;
+  var wsum = sumArr(weights.map(function (w) { return Math.max(0, Number(w) || 0); }));
+  if (wsum <= 0 || totalCents === 0) return shares;
+  var exact = weights.map(function (w) { return totalCents * Math.max(0, Number(w) || 0) / wsum; });
+  var floors = exact.map(function (e) { return Math.floor(e); });
+  var rem = totalCents - sumArr(floors);
+  var order = exact.map(function (e, i) { return { i: i, f: e - Math.floor(e) }; })
+    .sort(function (a, b) { return b.f - a.f || a.i - b.i; });
+  for (var k = 0; k < rem; k++) floors[order[k % order.length].i] += 1;
+  return floors;
+}
+
+// Even split with detail about who gets the leftover cents (first people, deterministic).
+function splitEvenDetail(totalCents, n) {
+  n = Math.max(0, Math.floor(Number(n) || 0));
+  var shares = allocateProportional(totalCents, new Array(n).fill(1));
+  var base = n > 0 ? Math.floor(totalCents / n) : 0;
+  var bonusIdx = [];
+  for (var i = 0; i < n; i++) if (shares[i] > base) bonusIdx.push(i);
+  return { shares: shares, bonusIdx: bonusIdx };
+}
+
+function splitEven(totalCents, n) { return splitEvenDetail(totalCents, n).shares; }
+
+// Weighted split. weightsAreCents=true means weights are dollar amounts (custom $),
+// otherwise they are proportional units (percent or ratio).
+// Residual (custom amounts not adding up to total) is distributed proportionally.
+function splitWeighted(totalCents, weights, weightsAreCents) {
+  totalCents = Math.max(0, Math.round(totalCents));
+  var w = weights.map(function (x) { return Math.max(0, Math.round(Number(x) || 0)); });
+  var n = w.length;
+  if (n === 0) return { shares: [], residualCents: totalCents };
+  if (sumArr(w) === 0) {
+    // No weights given: fall back to an even split.
+    return { shares: splitEven(totalCents, n), residualCents: 0 };
+  }
+  if (weightsAreCents) {
+    var shares = w.slice();
+    var residual = totalCents - sumArr(shares);
+    if (residual !== 0) {
+      var adj = allocateProportional(Math.abs(residual), w);
+      for (var i = 0; i < n; i++) shares[i] += (residual > 0 ? adj[i] : -adj[i]);
+    }
+    return { shares: shares, residualCents: residual };
+  }
+  return { shares: allocateProportional(totalCents, w), residualCents: 0 };
+}
+
+// Itemized split. items: [{priceCents, claimants:[personIdx]}].
+// Items with no claimants are shared by everyone.
+// Tax is split proportional to each person's item subtotal;
+// tip is split proportional to each person's tip base (subtotal, or subtotal+tax if post-tax).
+function splitItemized(items, personCount, taxCents, tipCents, preTax) {
+  personCount = Math.max(1, Math.floor(Number(personCount) || 1));
+  var sub = new Array(personCount).fill(0);
+  var allIdx = [];
+  for (var p = 0; p < personCount; p++) allIdx.push(p);
+  var unassignedCents = 0;
+  (items || []).forEach(function (it) {
+    var price = Math.max(0, Math.round(it.priceCents || 0));
+    if (price === 0) return;
+    var claimants = (it.claimants || []).filter(function (i) { return i >= 0 && i < personCount; });
+    if (claimants.length === 0) { claimants = allIdx.slice(); unassignedCents += price; }
+    var alloc = allocateProportional(price, claimants.map(function () { return 1; }));
+    claimants.forEach(function (pi, k) { sub[pi] += alloc[k]; });
+  });
+  var perTax = allocateProportional(Math.max(0, Math.round(taxCents || 0)), sub);
+  var tipBase = sub.map(function (s, i) { return preTax ? s : s + perTax[i]; });
+  var perTip = allocateProportional(Math.max(0, Math.round(tipCents || 0)), tipBase);
+  var shares = sub.map(function (s, i) { return s + perTax[i] + perTip[i]; });
+  return {
+    shares: shares, perSub: sub, perTax: perTax, perTip: perTip,
+    unassignedCents: unassignedCents, itemSubtotalCents: sumArr(sub)
+  };
+}
+
+// Rounding modes applied on top of an exact split.
+// 'up':     everyone rounds UP to the whole dollar; group collects delta extra (tip jar).
+// 'down':   everyone rounds DOWN; banker covers the shortfall.
+// 'nearest': each share to nearest dollar; banker settles the difference (+/-).
+// 'banker': everyone pays whole dollars down; banker absorbs ALL leftover cents.
+// Always returns shares summing exactly to totalCents.
+function applyRoundingMode(totalCents, shares, mode, bankerIdx) {
+  totalCents = Math.max(0, Math.round(totalCents));
+  var n = shares.length;
+  var out = shares.map(function (s) { return Math.max(0, Math.round(s)); });
+  var b = clampNum(bankerIdx, 0, Math.max(0, n - 1), 0);
+  var delta = 0, note = '';
+  if (n === 0) return { shares: out, deltaCents: 0, note: '' };
+  if (mode === 'up') {
+    out = out.map(function (s) { return Math.ceil(s / 100) * 100; });
+    delta = sumArr(out) - totalCents;
+    note = delta > 0 ? 'Rounded up: the group collects ' + fmtCents(delta) + ' extra (tip jar).'
+                     : 'Shares are already whole dollars — no rounding needed.';
+  } else if (mode === 'down' || mode === 'banker') {
+    out = out.map(function (s) { return Math.floor(s / 100) * 100; });
+    var short = totalCents - sumArr(out);
+    out[b] += short;
+    delta = short;
+    note = short > 0 ? 'Banker covers the leftover ' + fmtCents(short) + '.'
+                     : 'Shares are already whole dollars — no rounding needed.';
+  } else { // nearest
+    out = out.map(function (s) { return Math.round(s / 100) * 100; });
+    var diff = totalCents - sumArr(out);
+    out[b] += diff;
+    delta = diff;
+    if (diff > 0) note = 'Banker covers the ' + fmtCents(diff) + ' shortfall.';
+    else if (diff < 0) note = 'Banker keeps the ' + fmtCents(-diff) + ' over-collection.';
+    else note = 'Rounded to the nearest dollar with no difference left over.';
+  }
+  return { shares: out, deltaCents: delta, note: note, bankerIdx: b };
+}
+
+var COUNTRY_PRESETS = [
+  { id: 'us', flag: '\uD83C\uDDFA\uD83C\uDDF8', label: 'US', pct: 20, note: 'United States: 18\u201322% is standard — tips are most of a server\u2019s pay.' },
+  { id: 'eu', flag: '\uD83C\uDDEA\uD83C\uDDFA', label: 'Europe', pct: 8, note: 'Europe: service is often included in the price — 5\u201310% extra is plenty.' },
+  { id: 'uk', flag: '\uD83C\uDDEC\uD83C\uDDE7', label: 'UK', pct: 10, note: 'UK: check for a discretionary service charge (often 10\u201312.5%) before tipping on top.' },
+  { id: 'jp', flag: '\uD83C\uDDEF\uD83C\uDDF5', label: 'Japan', pct: 0, note: 'Japan: tipping can be seen as rude — 0% is correct etiquette.' },
+  { id: 'in', flag: '\uD83C\uDDEE\uD83C\uDDF3', label: 'India', pct: 10, note: 'India: 10% is the common restaurant norm (10\u201315% in upscale spots).' }
+];
+
+var QUICK_PRESETS = [
+  { id: 'coffee1', label: '\u2615 +$1', kind: 'flat', cents: 100, tipLabel: '$1.00 flat' },
+  { id: 'coffee2', label: '\u2615 +$2', kind: 'flat', cents: 200, tipLabel: '$2.00 flat' },
+  { id: 'biz', label: '\uD83C\uDF7D\uFE0F 20%', kind: 'pct', pct: 20, tipLabel: '20% (business dinner)' },
+  { id: 'del15', label: '\uD83D\uDEF5 15%', kind: 'pct', pct: 15, tipLabel: '15% (delivery)' },
+  { id: 'del3', label: '\uD83D\uDEF5 +$3', kind: 'flat', cents: 300, tipLabel: '$3.00 flat (delivery)' }
+];
+
+var ROUNDING_MODES = ['up', 'down', 'nearest', 'banker'];
+/*__PURE_END__*/
+</script>
+
+<script>
+(function () {
+  'use strict';
+  function el(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  var LS_KEY = 'tipslice-state-v1';
+
+  function defaults() {
+    return {
+      bill: '', tax: '', tipMode: 'pct', tipPct: 20, tipFlat: '',
+      preTax: true, countryNote: '',
+      splitMode: 'even',
+      people: ['Guest 1', 'Guest 2'],
+      rounding: 'nearest', banker: 0,
+      wkind: 'pct', weights: ['', ''],
+      items: [{ name: '', price: '', claimants: [0, 1] }]
+    };
+  }
+  var S = defaults();
+  try {
+    var raw = localStorage.getItem(LS_KEY);
+    if (raw) { var p = JSON.parse(raw); if (p && typeof p === 'object') S = Object.assign(defaults(), p); }
+  } catch (e) {}
+  if (!Array.isArray(S.people) || S.people.length === 0) S.people = ['Guest 1', 'Guest 2'];
+  if (!Array.isArray(S.weights)) S.weights = S.people.map(function () { return ''; });
+  if (!Array.isArray(S.items) || S.items.length === 0) S.items = [{ name: '', price: '', claimants: [0] }];
+  S.people.length = Math.max(1, Math.min(30, S.people.length));
+  while (S.weights.length < S.people.length) S.weights.push('');
+  S.weights.length = S.people.length;
+  S.banker = Math.max(0, Math.min(S.people.length - 1, S.banker | 0));
+  if (['up', 'down', 'nearest', 'banker'].indexOf(S.rounding) === -1) S.rounding = 'nearest';
+  if (['even', 'weighted', 'itemized'].indexOf(S.splitMode) === -1) S.splitMode = 'even';
+  S.items.forEach(function (it) {
+    if (!Array.isArray(it.claimants)) it.claimants = [];
+    it.claimants = it.claimants.filter(function (i) { return i >= 0 && i < S.people.length; });
+  });
+
+  function save() { try { localStorage.setItem(LS_KEY, JSON.stringify(S)); } catch (e) {} }
+
+  function peopleNames() {
+    return S.people.map(function (n, i) { var t = String(n == null ? '' : n).trim(); return t === '' ? 'Guest ' + (i + 1) : t; });
+  }
+
+  function setPeopleCount(n) {
+    n = Math.max(1, Math.min(30, Math.floor(Number(n) || 1)));
+    while (S.people.length < n) S.people.push('Guest ' + (S.people.length + 1));
+    S.people.length = n;
+    while (S.weights.length < n) S.weights.push('');
+    S.weights.length = n;
+    S.banker = Math.max(0, Math.min(n - 1, S.banker | 0));
+    S.items.forEach(function (it) {
+      if (!Array.isArray(it.claimants)) it.claimants = [];
+      it.claimants = it.claimants.filter(function (i) { return i >= 0 && i < n; });
+    });
+    el('people_count').value = n;
+    renderPeopleNames(); renderWeightsRows(); renderItemsRows(); renderBanker();
+  }
+
+  /* ---------- static chip / card builders ---------- */
+  function buildPresetChips() {
+    el('preset_chips').innerHTML = QUICK_PRESETS.map(function (q) {
+      return '<button type="button" data-preset="' + q.id + '" class="preset-chip rounded-full border border-[#e0d3b8] bg-white px-3.5 py-1.5 text-xs font-bold text-stone-600 hover:border-[#B45309] hover:text-[#B45309] transition">' + esc(q.label) + '</button>';
+    }).join('');
+    el('preset_chips').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-preset]'); if (!b) return;
+      var q = QUICK_PRESETS.filter(function (x) { return x.id === b.getAttribute('data-preset'); })[0];
+      if (!q) return;
+      if (q.kind === 'flat') { S.tipMode = 'flat'; S.tipFlat = (q.cents / 100).toFixed(2); el('in_tipflat').value = S.tipFlat; }
+      else { S.tipMode = 'pct'; S.tipPct = q.pct; el('tip_range').value = q.pct; }
+      S.countryNote = '';
+      refreshTipUI(); computeAndRender(); save();
+    });
+  }
+  function buildCountryChips() {
+    el('country_chips').innerHTML = COUNTRY_PRESETS.map(function (c) {
+      return '<button type="button" data-country="' + c.id + '" class="country-chip rounded-full border border-[#e0d3b8] bg-white px-3.5 py-1.5 text-xs font-bold text-stone-600 hover:border-[#B45309] hover:text-[#B45309] transition">' + c.flag + ' ' + esc(c.label) + '</button>';
+    }).join('');
+    el('country_chips').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-country]'); if (!b) return;
+      var c = COUNTRY_PRESETS.filter(function (x) { return x.id === b.getAttribute('data-country'); })[0];
+      if (!c) return;
+      S.tipMode = 'pct'; S.tipPct = c.pct; el('tip_range').value = c.pct;
+      S.countryNote = c.note;
+      document.querySelectorAll('.country-chip').forEach(function (x) { x.classList.remove('chip-active'); });
+      b.classList.add('chip-active');
+      var note = el('country_note');
+      note.textContent = c.note; note.classList.remove('hidden');
+      refreshTipUI(); computeAndRender(); save();
+    });
+  }
+
+  function refreshTipUI() {
+    var pre = el('basis_pre'), post = el('basis_post');
+    var on = 'bg-white shadow text-[#B45309]', off = 'text-stone-500';
+    pre.className = 'rounded-lg py-2 text-sm font-semibold transition ' + (S.preTax ? on : off);
+    post.className = 'rounded-lg py-2 text-sm font-semibold transition ' + (!S.preTax ? on : off);
+    var r = el('tip_range');
+    if (S.tipMode === 'pct') {
+      el('tip_readout').textContent = (Math.round(S.tipPct * 10) / 10) + '%';
+      r.classList.remove('hidden'); el('tip_flat_wrap').classList.add('hidden');
+      r.style.setProperty('--fill', (S.tipPct / 40 * 100) + '%');
+    } else {
+      var fv = parseDollarsToCents(S.tipFlat);
+      el('tip_readout').textContent = fv === null ? 'flat' : fmtCents(fv) + ' flat';
+      r.classList.add('hidden'); el('tip_flat_wrap').classList.remove('hidden');
+    }
+    document.querySelectorAll('.preset-chip').forEach(function (x) { x.classList.remove('chip-active'); });
+  }
+
+  function updateTabs() {
+    [['even', 'tab_even', 'panel_even'], ['weighted', 'tab_weighted', 'panel_weighted'], ['itemized', 'tab_itemized', 'panel_itemized']]
+      .forEach(function (t) {
+        var active = S.splitMode === t[0];
+        var tab = el(t[1]);
+        tab.className = 'rounded-lg py-2 text-sm font-semibold transition ' + (active ? 'tab-active' : 'text-stone-600');
+        tab.setAttribute('aria-selected', active ? 'true' : 'false');
+        el(t[2]).classList.toggle('hidden', !active);
+      });
+  }
+
+  function renderPeopleNames() {
+    el('people_names').innerHTML = S.people.map(function (n, i) {
+      return '<div><label class="sr-only" for="pname_' + i + '">Person ' + (i + 1) + ' name</label>' +
+        '<input id="pname_' + i + '" data-pname="' + i + '" type="text" value="' + esc(n) + '" maxlength="24" placeholder="Guest ' + (i + 1) + '"' +
+        ' class="w-full rounded-lg border border-[#e0d3b8] bg-white px-3 py-2 text-sm font-semibold text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#B45309]/60"></div>';
+    }).join('');
+  }
+
+  function renderBanker() {
+    var names = peopleNames();
+    el('banker_select').innerHTML = names.map(function (n, i) {
+      return '<option value="' + i + '"' + (i === S.banker ? ' selected' : '') + '>' + esc(n) + '</option>';
+    }).join('');
+    el('banker_wrap').classList.toggle('hidden', S.rounding === 'up');
+    document.querySelectorAll('.round-card').forEach(function (c) {
+      var active = c.getAttribute('data-round') === S.rounding;
+      c.classList.toggle('round-active', active);
+      c.setAttribute('aria-checked', active ? 'true' : 'false');
+    });
+  }
+
+  function renderWeightsRows() {
+    var names = peopleNames();
+    var amt = S.wkind === 'amt';
+    el('weights_rows').innerHTML = names.map(function (n, i) {
+      var v = S.weights[i] == null ? '' : S.weights[i];
+      return '<div class="flex items-center gap-2">' +
+        '<span class="w-24 truncate text-sm font-semibold text-stone-700" title="' + esc(n) + '">' + esc(n) + '</span>' +
+        '<div class="relative flex-1">' +
+        (amt ? '<span class="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 font-semibold text-sm">$</span>' : '') +
+        '<input data-weight="' + i + '" inputmode="decimal" type="text" value="' + esc(v) + '" placeholder="' + (amt ? '0.00' : (100 / names.length).toFixed(1)) + '"' +
+        ' class="w-full rounded-lg border border-[#e0d3b8] bg-white ' + (amt ? 'pl-7' : 'pl-3') + ' pr-8 py-2 font-mono text-sm font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#B45309]/60">' +
+        '<span class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 font-semibold text-sm">' + (amt ? '' : '%') + '</span>' +
+        '</div></div>';
+    }).join('');
+    var pct = el('wkind_pct'), a = el('wkind_amt');
+    pct.className = 'rounded-lg py-2 text-sm font-semibold transition ' + (!amt ? 'bg-white shadow text-[#B45309]' : 'text-stone-500');
+    a.className = 'rounded-lg py-2 text-sm font-semibold transition ' + (amt ? 'bg-white shadow text-[#B45309]' : 'text-stone-500');
+  }
+
+  function renderItemsRows() {
+    var names = peopleNames();
+    el('items_rows').innerHTML = S.items.map(function (it, i) {
+      var chips = names.map(function (n, pi) {
+        var sel = it.claimants.indexOf(pi) !== -1;
+        return '<button type="button" data-item="' + i + '" data-person="' + pi + '" aria-pressed="' + sel + '"' +
+          ' class="it-chip rounded-full border px-2.5 py-1 text-[11px] font-bold transition ' +
+          (sel ? 'bg-[#15803D] border-[#15803D] text-white' : 'border-[#e0d3b8] bg-white text-stone-500') + '">' + esc(n) + '</button>';
+      }).join('');
+      return '<div class="rounded-xl border border-[#e0d3b8] bg-white p-3">' +
+        '<div class="flex items-center gap-2">' +
+        '<input data-itemname="' + i + '" type="text" value="' + esc(it.name) + '" maxlength="40" placeholder="Item ' + (i + 1) + ' (e.g. Margherita pizza)"' +
+        ' class="flex-1 min-w-0 rounded-lg border border-[#e0d3b8] px-2.5 py-1.5 text-sm font-semibold text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#B45309]/60">' +
+        '<div class="relative w-24 shrink-0"><span class="absolute left-2 top-1/2 -translate-y-1/2 text-stone-400 font-semibold text-sm">$</span>' +
+        '<input data-itemprice="' + i + '" inputmode="decimal" type="text" value="' + esc(it.price) + '" placeholder="0.00"' +
+        ' class="w-full rounded-lg border border-[#e0d3b8] pl-6 pr-2 py-1.5 font-mono text-sm font-semibold text-stone-900 focus:outline-none focus:ring-2 focus:ring-[#B45309]/60"></div>' +
+        (S.items.length > 1 ? '<button type="button" data-delitem="' + i + '" aria-label="Remove item" class="shrink-0 w-8 h-8 rounded-lg text-stone-400 hover:text-red-600 hover:bg-red-50 font-bold">&times;</button>' : '') +
+        '</div>' +
+        '<div class="flex flex-wrap gap-1.5 mt-2">' + chips + '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  function copyText(t, btn) {
+    function done() { var o = btn.textContent; btn.textContent = 'Copied!'; setTimeout(function () { btn.textContent = o; }, 1200); }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch (e) {}
+      document.body.removeChild(ta); done();
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(t).then(done, fallback);
+    } else fallback();
+  }
+
+  /* ---------- compute + render results ---------- */
+  function computeAndRender() {
+    var names = peopleNames();
+    var n = names.length;
+    var billRaw = S.bill;
+    var billCents = parseDollarsToCents(billRaw);
+    var emptyState = el('empty_state'), results = el('results');
+
+    if (billCents === null) {
+      var isEmpty = String(billRaw).trim() === '';
+      emptyState.classList.remove('hidden'); results.classList.add('hidden');
+      emptyState.innerHTML = isEmpty
+        ? '<p class="text-4xl" aria-hidden="true">&#9986;</p><p class="mt-2 font-receipt text-lg font-bold text-stone-700">Enter your bill amount</p><p class="text-sm text-stone-500">and TipSlice will slice the tip and split the total.</p>'
+        : '<p class="text-4xl" aria-hidden="true">⚠️</p><p class="mt-2 font-receipt text-lg font-bold text-stone-700">Hmm, that amount doesn\u2019t look right</p><p class="text-sm text-stone-500">Please enter a valid bill amount, like 84.50.</p>';
+      return;
+    }
+
+    emptyState.classList.add('hidden'); results.classList.remove('hidden');
+
+    var isItemized = S.splitMode === 'itemized';
+    var billForTotals = billCents;
+    var itemData = null;
+    if (isItemized) {
+      var items = S.items.map(function (it) {
+        return { priceCents: parseDollarsToCents(it.price) || 0, claimants: it.claimants || [] };
+      });
+      billForTotals = items.reduce(function (a, it) { return a + it.priceCents; }, 0);
+    }
+
+    var totals = calcTotals({
+      billCents: billForTotals,
+      taxPct: parseFloat(S.tax) || 0,
+      tipMode: S.tipMode,
+      tipPct: S.tipPct,
+      tipFlatCents: parseDollarsToCents(S.tipFlat) || 0,
+      preTax: S.preTax
+    });
+
+    var shares, perSub, perTax, perTip, bonusIdx = [], notes = [];
+    if (S.splitMode === 'even') {
+      var d = splitEvenDetail(totals.totalCents, n);
+      shares = d.shares; bonusIdx = d.bonusIdx;
+      var ones = names.map(function () { return 1; });
+      perSub = allocateProportional(totals.billCents, ones);
+      perTax = allocateProportional(totals.taxCents, ones);
+      perTip = allocateProportional(totals.tipCents, ones);
+    } else if (S.splitMode === 'weighted') {
+      if (S.wkind === 'pct') {
+        var pcts = S.weights.map(function (w) { var v = parseFloat(w); return (isFinite(v) && v >= 0) ? v : 100 / n; });
+        var psum = pcts.reduce(function (a, b) { return a + b; }, 0);
+        if (Math.abs(psum - 100) > 0.005) notes.push('Weights add up to ' + (Math.round(psum * 10) / 10) + '% — split proportionally.');
+        var wr = splitWeighted(totals.totalCents, pcts, false);
+        shares = wr.shares;
+        perSub = allocateProportional(totals.billCents, pcts);
+        perTax = allocateProportional(totals.taxCents, pcts);
+        perTip = allocateProportional(totals.tipCents, pcts);
+      } else {
+        var amts = [], badAmt = false;
+        S.weights.forEach(function (w) {
+          var c = parseDollarsToCents(w);
+          if (c === null) { badAmt = true; c = 0; }
+          amts.push(c);
+        });
+        if (badAmt) notes.push('Some amounts were invalid and counted as $0.00.');
+        var wr2 = splitWeighted(totals.totalCents, amts, true);
+        shares = wr2.shares;
+        if (wr2.residualCents !== 0) {
+          notes.push((wr2.residualCents > 0 ? 'Custom amounts fall short by ' : 'Custom amounts exceed the total by ') +
+            fmtCents(Math.abs(wr2.residualCents)) + ' — adjusted proportionally.');
+        }
+        var wu = amts.slice(); if (wu.reduce(function (a, b) { return a + b; }, 0) === 0) wu = names.map(function () { return 1; });
+        perSub = allocateProportional(totals.billCents, wu);
+        perTax = allocateProportional(totals.taxCents, wu);
+        perTip = allocateProportional(totals.tipCents, wu);
+      }
+    } else {
+      var its = S.items.map(function (it) {
+        return { priceCents: parseDollarsToCents(it.price) || 0, claimants: it.claimants || [] };
+      });
+      itemData = splitItemized(its, n, totals.taxCents, totals.tipCents, S.preTax);
+      shares = itemData.shares; perSub = itemData.perSub; perTax = itemData.perTax; perTip = itemData.perTip;
+      if (itemData.unassignedCents > 0) notes.push(fmtCents(itemData.unassignedCents) + ' of unassigned items was split evenly.');
+    }
+
+    var rounded = applyRoundingMode(totals.totalCents, shares, S.rounding, S.banker);
+    var finalShares = rounded.shares;
+
+    // Summary
+    var tipLabel = S.tipMode === 'flat'
+      ? 'Tip (flat)'
+      : 'Tip (' + (Math.round(S.tipPct * 10) / 10) + '% of ' + (S.preTax ? 'pre-tax' : 'post-tax') + ')';
+    el('res_summary').innerHTML =
+      row('Subtotal', fmtCents(totals.billCents)) +
+      row('Tax' + (totals.taxCents ? ' (' + (parseFloat(S.tax) || 0) + '%)' : ''), fmtCents(totals.taxCents)) +
+      row(tipLabel, fmtCents(totals.tipCents), true) +
+      '<div class="dash-sep !border-stone-800 pt-2 mt-2 flex justify-between font-receipt text-xl font-bold text-stone-900"><span>TOTAL</span><span>' + fmtCents(totals.totalCents) + '</span></div>' +
+      (totals.totalCents === 0 ? '<p class="text-xs text-stone-500 pt-1">Bill is $0.00 — nothing to split yet.</p>' : '');
+    function row(l, v, hl) {
+      return '<div class="flex justify-between' + (hl ? ' text-[#15803D] font-semibold' : '') + '"><span class="text-stone-500">' + esc(l) + '</span><span>' + esc(v) + '</span></div>';
+    }
+
+    // Rounding note
+    var rn = el('round_note');
+    var allNotes = [];
+    if (rounded.note) allNotes.push(rounded.note);
+    if (S.splitMode === 'even' && bonusIdx.length > 0) {
+      allNotes.push(bonusIdx.map(function (i) { return '<strong>' + esc(names[i]) + '</strong>'; }).join(', ') +
+        ' pay' + (bonusIdx.length > 1 ? '' : 's') + ' the extra cent' + (bonusIdx.length > 1 ? 's' : '') + ' from the even split.');
+    }
+    notes.forEach(function (x) { allNotes.push(esc(x)); });
+    if (allNotes.length) { rn.innerHTML = '&#129534; ' + allNotes.join(' '); rn.classList.remove('hidden'); }
+    else rn.classList.add('hidden');
+
+    // Per-person cards
+    el('res_people').innerHTML = names.map(function (nm, i) {
+      var badges = [];
+      if (bonusIdx.indexOf(i) !== -1) badges.push('<span class="rounded-full bg-[#B45309]/10 border border-[#B45309]/40 text-[#B45309] px-2 py-0.5 text-[10px] font-bold">+1&cent;</span>');
+      if (S.rounding !== 'up' && rounded.bankerIdx === i && rounded.deltaCents !== 0)
+        badges.push('<span class="rounded-full bg-[#15803D]/10 border border-[#15803D]/40 text-[#15803D] px-2 py-0.5 text-[10px] font-bold">&#127974; settles</span>');
+      if (S.rounding === 'up' && finalShares[i] > shares[i])
+        badges.push('<span class="rounded-full bg-[#B45309]/10 border border-[#B45309]/40 text-[#B45309] px-2 py-0.5 text-[10px] font-bold">&uarr; rounded up</span>');
+      var br = isItemized
+        ? 'items ' + fmtCents(perSub[i]) + ' &middot; tax ' + fmtCents(perTax[i]) + ' &middot; tip ' + fmtCents(perTip[i])
+        : 'share of ' + fmtCents(totals.totalCents) + ' total';
+      return '<div class="rounded-xl border border-[#e0d3b8] bg-white px-4 py-3 flex items-center justify-between gap-3">' +
+        '<div class="min-w-0"><div class="flex items-center gap-1.5 flex-wrap">' +
+        '<p class="font-bold text-stone-800 truncate">' + esc(nm) + '</p>' + badges.join('') + '</div>' +
+        '<p class="text-[11px] text-stone-500 mt-0.5">' + br + '</p></div>' +
+        '<div class="text-right shrink-0"><p class="font-mono font-bold text-lg text-stone-900">' + fmtCents(finalShares[i]) + '</p>' +
+        '<button type="button" data-copy="' + i + '" class="no-print mt-1 rounded-lg border border-[#e0d3b8] px-2.5 py-1 text-[11px] font-bold text-[#B45309] hover:bg-[#fdf3e3]">Copy</button></div></div>';
+    }).join('');
+  }
+
+  /* ---------- events ---------- */
+  function bind() {
+    el('in_bill').addEventListener('input', function (e) { S.bill = e.target.value; computeAndRender(); save(); });
+    el('in_tax').addEventListener('input', function (e) { S.tax = e.target.value; computeAndRender(); save(); });
+    el('in_tipflat').addEventListener('input', function (e) { S.tipFlat = e.target.value; refreshTipUI(); computeAndRender(); save(); });
+    el('tip_range').addEventListener('input', function (e) {
+      S.tipMode = 'pct'; S.tipPct = parseFloat(e.target.value) || 0; S.countryNote = '';
+      var note = el('country_note'); note.classList.add('hidden');
+      document.querySelectorAll('.country-chip').forEach(function (x) { x.classList.remove('chip-active'); });
+      refreshTipUI(); computeAndRender(); save();
+    });
+    el('basis_pre').addEventListener('click', function () { S.preTax = true; refreshTipUI(); computeAndRender(); save(); });
+    el('basis_post').addEventListener('click', function () { S.preTax = false; refreshTipUI(); computeAndRender(); save(); });
+
+    [['tab_even', 'even'], ['tab_weighted', 'weighted'], ['tab_itemized', 'itemized']].forEach(function (t) {
+      el(t[0]).addEventListener('click', function () { S.splitMode = t[1]; updateTabs(); computeAndRender(); save(); });
+    });
+
+    el('pc_minus').addEventListener('click', function () { setPeopleCount((parseInt(el('people_count').value, 10) || 2) - 1); computeAndRender(); save(); });
+    el('pc_plus').addEventListener('click', function () { setPeopleCount((parseInt(el('people_count').value, 10) || 2) + 1); computeAndRender(); save(); });
+    el('people_count').addEventListener('change', function (e) { setPeopleCount(e.target.value); computeAndRender(); save(); });
+    el('people_names').addEventListener('input', function (e) {
+      var i = e.target.getAttribute('data-pname'); if (i === null) return;
+      S.people[+i] = e.target.value;
+      renderBanker();
+      if (S.splitMode === 'weighted') renderWeightsRowsKeepFocus(e.target);
+      computeAndRender(); save();
+    });
+
+    document.querySelectorAll('.round-card').forEach(function (c) {
+      c.addEventListener('click', function () { S.rounding = c.getAttribute('data-round'); renderBanker(); computeAndRender(); save(); });
+    });
+    el('banker_select').addEventListener('change', function (e) { S.banker = +e.target.value || 0; computeAndRender(); save(); });
+
+    el('wkind_pct').addEventListener('click', function () { S.wkind = 'pct'; renderWeightsRows(); computeAndRender(); save(); });
+    el('wkind_amt').addEventListener('click', function () { S.wkind = 'amt'; renderWeightsRows(); computeAndRender(); save(); });
+    el('weights_rows').addEventListener('input', function (e) {
+      var i = e.target.getAttribute('data-weight'); if (i === null) return;
+      S.weights[+i] = e.target.value; computeAndRender(); save();
+    });
+    el('weights_hint').textContent = '';
+
+    el('btn_add_item').addEventListener('click', function () {
+      S.items.push({ name: '', price: '', claimants: peopleNames().map(function (_, i) { return i; }) });
+      renderItemsRows(); computeAndRender(); save();
+    });
+    el('items_rows').addEventListener('click', function (e) {
+      var chip = e.target.closest('.it-chip');
+      if (chip) {
+        var ii = +chip.getAttribute('data-item'), pi = +chip.getAttribute('data-person');
+        var cl = S.items[ii].claimants, at = cl.indexOf(pi);
+        if (at === -1) cl.push(pi); else cl.splice(at, 1);
+        renderItemsRows(); computeAndRender(); save(); return;
+      }
+      var del = e.target.closest('[data-delitem]');
+      if (del) { S.items.splice(+del.getAttribute('data-delitem'), 1); renderItemsRows(); computeAndRender(); save(); }
+    });
+    el('items_rows').addEventListener('input', function (e) {
+      var ni = e.target.getAttribute('data-itemname'), pi2 = e.target.getAttribute('data-itemprice');
+      if (ni !== null) S.items[+ni].name = e.target.value;
+      if (pi2 !== null) S.items[+pi2].price = e.target.value;
+      computeAndRender(); save();
+    });
+
+    el('res_people').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-copy]'); if (!b) return;
+      var i = +b.getAttribute('data-copy');
+      var txt = b.closest('.rounded-xl').querySelector('.font-mono').textContent;
+      copyText(peopleNames()[i] + ' owes ' + txt + ' (TipSlice)', b);
+    });
+
+    el('btn_reset').addEventListener('click', function () {
+      S = defaults();
+      try { localStorage.removeItem(LS_KEY); } catch (e) {}
+      initValues(); computeAndRender();
+    });
+  }
+
+  // Re-render weight rows after a name edit without stealing focus from the name input.
+  function renderWeightsRowsKeepFocus() { renderWeightsRows(); }
+
+  function initValues() {
+    el('in_bill').value = S.bill || '';
+    el('in_tax').value = S.tax || '';
+    el('in_tipflat').value = S.tipFlat || '';
+    el('tip_range').value = S.tipMode === 'pct' ? S.tipPct : 20;
+    if (S.tipMode === 'pct') S.tipPct = parseFloat(el('tip_range').value) || 0;
+    el('people_count').value = S.people.length;
+    if (S.countryNote) { var note = el('country_note'); note.textContent = S.countryNote; note.classList.remove('hidden'); }
+    refreshTipUI(); updateTabs();
+    renderPeopleNames(); renderWeightsRows(); renderItemsRows(); renderBanker();
+  }
+
+  /* ---------- init ---------- */
+  buildPresetChips();
+  buildCountryChips();
+  bind();
+  initValues();
+  computeAndRender();
+})();
+</script>
+</body>
+</html>
